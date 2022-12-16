@@ -21,7 +21,7 @@ export class UserService {
 
       return user
     } catch (error) {
-      throw new ExceptionError('THIRD_PARTY_SERVICE_ERROR', error)
+      return Promise.reject(new ExceptionError('THIRD_PARTY_SERVICE_ERROR', error))
     }
   }
 
