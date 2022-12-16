@@ -2,7 +2,7 @@ import { ExceptionError } from '@shared/helpers/exceptionError'
 import { UserProfileModel } from '@models/userProfile'
 
 export class UserProfileService {
-  public async create(data: Creation) {
+  public async create(data: Creation): Promise<string> {
     try {
       const profile = new UserProfileModel(data)
       await profile.save()
