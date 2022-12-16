@@ -39,7 +39,7 @@ export class UserCredentialService {
 
     if (stringifyP !== stringifyS) {
       return Promise.reject(
-        new ExceptionError('FORBIDDEM_ERROR', 'Invalid user credential')
+        new ExceptionError('UNAUTHORIZED_ERROR', 'Invalid user credential')
       )
     }
   }
