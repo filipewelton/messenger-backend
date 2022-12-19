@@ -1,31 +1,36 @@
 import { faker } from '@faker-js/faker'
+import { PrismaClient } from '@prisma/client'
 
 import { DatabaseService } from '@services/database'
 import { GroupService } from '@services/group'
-import { setEnvironmentVariables } from '@shared/helpers/setEnvironmentVariables'
 
-import { deleteGroup } from '../shared/mocks/group'
+const client = new PrismaClient()
 
 describe('Group service', () => {
   const service = new GroupService()
 
   beforeAll(async () => {
-    setEnvironmentVariables()
-
-    const { DATABASE_URI } = process.env
-
-    await DatabaseService.startConnection(DATABASE_URI)
+    await DatabaseService.connect()
   })
 
+  let profileId: string
   let groupId: string
 
   test('When to create', async () => {
-    const profileId = faker.database.mongodbObjectId()
-    groupId = await service.create({
-      admins: [profileId],
-      members: [profileId],
-      name: faker.random.alphaNumeric(),
-    })
+    profileId = await client.profile
+      .create({
+        data: {
+          username: faker.internet.userName(),
+        },
+      })
+      .then((reply) => reply.id)
+
+    groupId = await service
+      .create({
+        name: faker.random.word(),
+        profileId,
+      })
+      .then((reply) => reply.id)
   })
 
   test('When to recover', async () => {
@@ -45,7 +50,6 @@ describe('Group service', () => {
   })
 
   afterAll(async () => {
-    await deleteGroup(groupId)
-    await DatabaseService.stopConnection()
+    await DatabaseService.disconnect()
   })
 })

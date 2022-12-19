@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 
 import { CacheService } from '@services/cache'
-import { setEnvironmentVariables } from '@shared/helpers/setEnvironmentVariables'
+import { setEnvironmentVariables } from '@shared/helpers/environmentVariables'
 
 describe('Cache service', () => {
   beforeAll(async () => {

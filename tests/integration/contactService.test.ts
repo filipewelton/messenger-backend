@@ -1,30 +1,57 @@
 import { faker } from '@faker-js/faker'
+import { PrismaClient } from '@prisma/client'
 
-import { ContactService } from '@services/contact'
+import { ContactCardService } from '@services/contactCard'
 import { DatabaseService } from '@services/database'
-import { setEnvironmentVariables } from '@shared/helpers/setEnvironmentVariables'
 
-const service = new ContactService()
+const service = new ContactCardService()
+const client = new PrismaClient()
 
 describe('Contact service', () => {
-  beforeAll(async () => {
-    setEnvironmentVariables()
-    const { DATABASE_URI } = process.env
-    await DatabaseService.startConnection(DATABASE_URI)
-  })
-
-  const user1 = faker.database.mongodbObjectId()
-
-  test('When to create', async () => {
-    const user2 = faker.database.mongodbObjectId()
-    await service.create(user1, user2)
-  })
-
+  let profileId: string
+  let hostId: string
+  let guestId: string
   let contactCardId: string
 
+  beforeAll(async () => {
+    await DatabaseService.connect()
+
+    profileId = await client.profile
+      .create({
+        data: {
+          username: faker.internet.userName(),
+        },
+      })
+      .then((reply) => reply.id)
+
+    hostId = await client.user
+      .create({
+        data: {
+          profileId,
+          accountType: 'STANDARD',
+          email: faker.internet.email(),
+          hash: faker.datatype.uuid(),
+        },
+      })
+      .then((reply) => reply.id)
+
+    guestId = await client.profile
+      .create({
+        data: {
+          username: faker.internet.userName(),
+        },
+      })
+      .then((reply) => reply.id)
+  })
+
+  test('When to create', async () => {
+    const contactCard = await service.create(hostId, guestId)
+    contactCardId = contactCard.id
+    expect(contactCard).toBeInstanceOf(Object)
+  })
+
   test('When to recover', async () => {
-    const contactCards = await service.getAll(user1)
-    contactCardId = contactCards[0].id
+    const contactCards = await service.getAll(hostId)
     expect(contactCards).toHaveLength(1)
   })
 
@@ -32,5 +59,16 @@ describe('Contact service', () => {
     await service.exclude(contactCardId)
   })
 
-  afterAll(async () => await DatabaseService.stopConnection())
+  afterAll(async () => {
+    await client.user.delete({
+      where: { id: hostId },
+    })
+    await client.profile.delete({
+      where: { id: profileId },
+    })
+    await client.profile.delete({
+      where: { id: guestId },
+    })
+    await DatabaseService.disconnect()
+  })
 })

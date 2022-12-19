@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker'
 
 import { CacheService } from '@services/cache'
 import { UserCredential, UserCredentialService } from '@services/userCredential'
-import { setEnvironmentVariables } from '@shared/helpers/setEnvironmentVariables'
+import { setEnvironmentVariables } from '@shared/helpers/environmentVariables'
 
 describe('User credential service', () => {
   const service = new UserCredentialService()

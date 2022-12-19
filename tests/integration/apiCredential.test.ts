@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker'
 
 import { ApiCredential, ApiCredentialService } from '@services/apiCredential'
 import { CacheService } from '@services/cache'
-import { setEnvironmentVariables } from '@shared/helpers/setEnvironmentVariables'
+import { setEnvironmentVariables } from '@shared/helpers/environmentVariables'
 import { ExceptionError } from '@shared/helpers/exceptionError'
 
 const service = new ApiCredentialService()
