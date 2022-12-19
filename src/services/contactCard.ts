@@ -1,15 +1,19 @@
-import { ContactCardModel } from '@models/contactCard'
+import { PrismaClient } from '@prisma/client'
+
 import { ExceptionError } from '@shared/helpers/exceptionError'
 
-export class ContactService {
-  public async create(user1: string, user2: string) {
+const client = new PrismaClient()
+
+export class ContactCardService {
+  public async create(hostId: string, guestId: string) {
     try {
-      const contactCard = new ContactCardModel({
-        user1: Object(user1),
-        user2: Object(user2)
+      const contactCard = await client.contactCard.create({
+        data: {
+          hostId,
+          guestId,
+        },
       })
-      await contactCard.save()
-      return
+      return contactCard
     } catch (error) {
       return Promise.reject(
         new ExceptionError('THIRD_PARTY_SERVICE_ERROR', error)
@@ -17,10 +21,10 @@ export class ContactService {
     }
   }
 
-  public async getAll(userId: string) {
+  public async getAll(hostId: string) {
     try {
-      const contactCards = await ContactCardModel.find({
-        $or: [{ user1: userId }, { user2: userId }]
+      const contactCards = await client.contactCard.findMany({
+        where: { hostId },
       })
       return contactCards
     } catch (error) {
@@ -32,8 +36,9 @@ export class ContactService {
 
   public async exclude(contactCardId: string) {
     try {
-      await ContactCardModel.findByIdAndDelete(contactCardId)
-      return
+      await client.contactCard.delete({
+        where: { id: contactCardId },
+      })
     } catch (error) {
       throw new ExceptionError('THIRD_PARTY_SERVICE_ERROR', error)
     }

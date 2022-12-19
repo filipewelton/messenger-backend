@@ -34,10 +34,16 @@ export class UserCredentialService {
     provided: UserCredential,
     stored: UserCredential
   ): Promise<void> {
-    const stringifyP = JSON.stringify(provided)
-    const stringifyS = JSON.stringify(stored)
+    try {
+      const p = provided,
+        s = stored
 
-    if (stringifyP !== stringifyS) {
+      if (p.accessKey !== s.accessKey) throw null
+      if (p.refreshToken !== s.refreshToken) throw null
+      if (p.userId !== s.userId) throw null
+
+      return
+    } catch (error) {
       return Promise.reject(
         new ExceptionError('UNAUTHORIZED_ERROR', 'Invalid user credential')
       )
@@ -47,23 +53,14 @@ export class UserCredentialService {
   public async get(accessKey: string) {
     try {
       await CacheService.switchDatabase(1)
-
       const credential = await CacheService.getJson<UserCredential>(accessKey)
-
-      if (credential === null) {
-        return Promise.reject(
-          new ExceptionError('UNAUTHORIZED_ERROR', 'Invalid user credential')
-        )
-      }
-
-      return credential
+      return { ...credential, accessKey }
     } catch (error) {
-      return Promise.reject(
-        new ExceptionError(
-          'THIRD_PARTY_SERVICE_ERROR',
-          'Invalid user credential'
-        )
-      )
+      const { type }: ExceptionError = error
+
+      throw type === 'NOT_FOUND_ERROR'
+        ? new ExceptionError('UNAUTHORIZED_ERROR', 'Invalid user credential')
+        : error
     }
   }
 

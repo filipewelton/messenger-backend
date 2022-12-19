@@ -1,21 +1,38 @@
-import { GroupModel } from '@models/group'
+import { GroupMember, PrismaClient } from '@prisma/client'
+
 import { ExceptionError } from '@shared/helpers/exceptionError'
 
+const client = new PrismaClient()
+
 export class GroupService {
-  public async create(data: GroupCreation): Promise<string> {
+  public async create(data: GroupCreation) {
     try {
-      const group = new GroupModel(data)
-      await group.save()
-      return group.id
+      const group = await client.group.create({
+        data: {
+          name: data.name,
+        },
+      })
+
+      await client.groupMember.create({
+        data: {
+          isAdmin: true,
+          profileId: data.profileId,
+          groupId: group.id,
+        },
+      })
+
+      return group
     } catch (error) {
+      console.log(error)
       throw new ExceptionError('THIRD_PARTY_SERVICE_ERROR', error)
     }
   }
 
   public async update(groupId: string, data: GroupUpdate) {
     try {
-      await GroupModel.findByIdAndUpdate(groupId, {
-        $set: data,
+      await client.group.update({
+        data,
+        where: { id: groupId },
       })
     } catch (error) {
       throw new ExceptionError('THIRD_PARTY_SERVICE_ERROR', error)
@@ -23,27 +40,18 @@ export class GroupService {
   }
 
   public async get(groupId: string) {
-    try {
-      const group = await GroupModel.findById(groupId)
-
-      if (group === null) {
-        return Promise.reject(
-          new ExceptionError('NOT_FOUND_ERROR', 'Group not found')
-        )
-      }
-
-      return Promise.resolve(group)
-    } catch (error) {
-      throw new ExceptionError('THIRD_PARTY_SERVICE_ERROR', error)
-    }
+    return await client.group
+      .findFirstOrThrow({
+        where: { id: groupId },
+      })
+      .catch(() => {
+        throw new ExceptionError('NOT_FOUND_ERROR', 'Group not found')
+      })
   }
 
-  public async checkIfTheUserIsAdmin(
-    admins: string[],
-    profileId: string
-  ): Promise<void> {
+  public async checkIfTheUserIsAdmin(member: GroupMember): Promise<void> {
     try {
-      if (!admins.includes(profileId)) {
+      if (member.isAdmin === false) {
         return Promise.reject(
           new ExceptionError('FORBIDDEM_ERROR', 'User does not have permission')
         )
@@ -55,27 +63,28 @@ export class GroupService {
 
   public async addMemberToTheGroup(groupId: string, profileId: string) {
     try {
-      await GroupModel.findByIdAndUpdate(groupId, {
-        $push: {
-          members: [profileId],
+      await client.groupMember.create({
+        data: {
+          groupId,
+          isAdmin: false,
+          profileId,
         },
       })
     } catch (error) {
-      throw new ExceptionError('THIRD_PARTY_SERVICE_ERROR', error)
+      return
     }
   }
 
   public async checkIfTheUserIsAlreadyInTheMembersList(
-    memberList: string[],
-    profileId: string
+    groupId: string, profileId: string
   ): Promise<void> {
-    if (memberList.includes(profileId)) {
-      return Promise.reject(
-        new ExceptionError(
-          'CONFLICT_ERROR',
-          'This user is already in the member list'
-        )
-      )
-    }
+    return await client.groupMember
+      .findFirstOrThrow({
+        where: { AND: [{ groupId }, { profileId }] }
+      })
+      .then(() => undefined)
+      .catch(() => {
+        throw new ExceptionError('NOT_FOUND_ERROR', 'Group not found')
+      })
   }
 }

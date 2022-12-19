@@ -67,7 +67,7 @@ export class CacheService {
 
       if (json === null) {
         return Promise.reject(
-          new ExceptionError('THIRD_PARTY_SERVICE_ERROR', 'JSON not found')
+          new ExceptionError('NOT_FOUND_ERROR', 'JSON not found')
         )
       }
 
